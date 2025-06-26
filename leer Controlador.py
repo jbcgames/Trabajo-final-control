@@ -74,6 +74,6 @@ def update(frame):
 
 # Crear figura y ejes
 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 6))
-ani = animation.FuncAnimation(fig, update, interval=20)
+ani = animation.FuncAnimation(fig, update, interval=1)
 plt.tight_layout()
 plt.show()
