@@ -4,7 +4,7 @@ import csv
 import matplotlib.pyplot as plt
 
 # Configura tu puerto serial aquí
-PORT = 'COM6'  # Cámbialo según sea necesario (Linux: '/dev/ttyUSB0' o '/dev/ttyACM0')
+PORT = 'COM7'  # Cámbialo según sea necesario (Linux: '/dev/ttyUSB0' o '/dev/ttyACM0')
 BAUD = 115200
 DURATION = 2 # segundos entre cambios de PWM
 PWM_VALUES = [40, 100]  # Valores de PWM a enviar
