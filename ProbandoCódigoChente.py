@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Cargar CSV
-archivo = 'datos_motor.csv'  # Cambia esto si el archivo tiene otro nombre
+archivo = 'C:\Users\USER\OneDrive\Documentos\mediciones_rpm.csv'  # Cambia esto si el archivo tiene otro nombre
 datos = pd.read_csv(archivo)
 
 # Extraer columnas
