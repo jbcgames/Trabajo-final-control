@@ -1,112 +1,69 @@
 import serial
 import time
 import matplotlib.pyplot as plt
-import numpy as np
-from collections import deque
 
-# === CONFIGURACIÓN ===
+# === Parámetros ===
 PORT = 'COM7'
 BAUD = 115200
-Ts = 0.01  # período de muestreo
-DURATION = 100  # duración total en segundos
+UPDATE_INTERVAL = 0.1  # segundos entre actualizaciones
 
-# Controlador discretizado
-b0 = 0.02754545
-b1 = -0.027
-a1 = -0.81818182
+# Ganancias del controlador por estados
+rpm_ref = 1500
+k1 = -0.000369976529 
+k2 = -0.00000836456295 
+Nbar = 0.00010964213
 
-referencia = 1000.0  # RPM deseada
-umbral_pwm = 30      # mínimo PWM para romper fricción
-
-# Variables del controlador
-e = 0
-e_prev = 0
-u = 0
-u_prev = 0
-
-angulo_prev = None
-t_prev = None
-
-# Comunicación Serial
+# Conexión serial
 ser = serial.Serial(PORT, BAUD, timeout=1)
 time.sleep(2)
+print("Conectado")
 
-# === Preparar gráfica en tiempo real ===
+# Enviar parámetros
+comando = f"{rpm_ref} {k1} {k2} {Nbar}\n"
+ser.write(comando.encode())
+print(f"Enviado: {comando.strip()}")
+
+# Configurar gráfica
 plt.ion()
 fig, ax = plt.subplots()
-ax.set_ylim(0, 1200)
-ax.set_xlim(0, DURATION)
+line_rpm, = ax.plot([], [], label="RPM")
 ax.set_xlabel("Tiempo (s)")
 ax.set_ylabel("RPM")
-ax.set_title("Velocidad del motor en tiempo real")
-
-line_rpm, = ax.plot([], [], label='RPM')
-line_ref, = ax.plot([], [], 'r--', label='Referencia')
+ax.set_title("RPM con realimentación de estados")
+ax.grid(True)
 ax.legend()
 
-# Buffers de datos para la gráfica
-t_buffer = deque(maxlen=500)
-rpm_buffer = deque(maxlen=500)
+tiempos = []
+rpms = []
+last_update = time.time()
 
-# Tiempo base
-start_time = time.time()
-absolute_start_time = start_time
+try:
+    while True:
+        line = ser.readline().decode().strip()
+        try:
+            if line:
+                partes = line.split(",")
+                if len(partes) == 3:
+                    t = float(partes[0])
+                    rpm = float(partes[1].split(":")[1])
+                    pos = float(partes[2].split(":")[1])
 
-# === Bucle de control ===
-while (time.time() - start_time) < DURATION:
-    line = ser.readline().decode().strip()
-    try:
-        if line == '':
-            continue
-        angle = float(line)
-        timestamp = time.time()
+                    print(f"{t:.3f}s | RPM = {rpm:.2f} | Pos = {pos:.2f}°")
 
-        if timestamp - absolute_start_time < 0.5:
-            angulo_prev = angle
-            t_prev = timestamp
-            continue
-
-        # Calcular RPM
-        dt = timestamp - t_prev
-        delta = (angle - angulo_prev) % 360
-        if delta > 180:
-            delta -= 360
-        rpm_actual = (delta / dt) * (60 / 360)
-
-        # Controlador discreto
-        e = referencia - rpm_actual
-        u = b0 * e + b1 * e_prev - a1 * u_prev
-        pwm = max(min(u, 100), -100)
-
-        # Aplicar umbral mínimo para evitar atascos
-        if abs(rpm_actual) < 20 and abs(pwm) < umbral_pwm:
-            pwm = umbral_pwm if pwm >= 0 else -umbral_pwm
-
-        # Enviar al ESP32
-        ser.write(f"{int(pwm)}\n".encode())
-
-        # Actualizar estados
-        e_prev = e
-        u_prev = u
-        angulo_prev = angle
-        t_prev = timestamp
-
-        # Agregar datos al buffer
-        t_buffer.append(timestamp - absolute_start_time)
-        rpm_buffer.append(rpm_actual)
-
-        # Actualizar gráfica
-        line_rpm.set_data(t_buffer, rpm_buffer)
-        line_ref.set_data(t_buffer, [referencia] * len(t_buffer))
-        ax.set_xlim(max(0, t_buffer[0]), max(2, t_buffer[-1]))
-        ax.figure.canvas.draw()
-        ax.figure.canvas.flush_events()
-
-        # Esperar siguiente iteración
-        time.sleep(Ts)
-
-    except ValueError:
-        continue
-
-ser.close()
-print("Control finalizado.")
+                    if time.time() - last_update >= UPDATE_INTERVAL:
+                        tiempos.append(t)
+                        rpms.append(rpm)
+                        line_rpm.set_data(tiempos, rpms)
+                        ax.set_xlim(max(0, t - 5), t + 0.1)
+                        ax.set_ylim(min(rpms[-200:]) - 10, max(rpms[-200:]) + 10)
+                        fig.canvas.draw()
+                        fig.canvas.flush_events()
+                        last_update = time.time()
+        except Exception as e:
+            print("Error:", e)
+except KeyboardInterrupt:
+    print("Terminando...")
+finally:
+    ser.close()
+    plt.ioff()
+    plt.show()
