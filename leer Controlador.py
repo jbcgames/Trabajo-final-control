@@ -1,55 +1,82 @@
 import serial
-import time
-import csv
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from collections import deque
 
-# Configura tu puerto serial aquí
-PORT = 'COM7'  # Cámbialo según sea necesario (Linux: '/dev/ttyUSB0' o '/dev/ttyACM0')
-BAUD = 115200
-DURATION = 2 # segundos entre cambios de PWM
-PWM_VALUES = [0, 100]  # Valores de PWM a enviar
-CSV_FILENAME = "datos_motor.csv"
+import time
 
-# Conexión al puerto serie
-ser = serial.Serial(PORT, BAUD, timeout=1)
-time.sleep(2)  # Espera a que se estabilice
 
-# Abrir CSV
-with open(CSV_FILENAME, mode='w', newline='') as file:
-    writer = csv.writer(file)
-    writer.writerow(['timestamp', 'angle', 'pwm'])
-    absolute_start_time = time.time()
-    for pwm in PWM_VALUES:
-        # Enviar PWM
-        ser.write(f"{pwm}\n".encode())
-        print(f"Enviado PWM: {pwm}")
-        start_time = time.time()
+# Configura tu puerto y velocidad
+PORT = 'COM6'     # Cámbialo a '/dev/ttyUSB0' o similar en Linux
+BAUDRATE = 115200
+BUFFER_SIZE = 200
 
-        # Recolectar datos durante DURATION segundos
-        while (time.time() - start_time) < DURATION:
-            line = ser.readline().decode().strip()
-            try:
-                if(time.time() - absolute_start_time >= 0.5):
-                    angle = float(line)
-                    timestamp = time.time()
-                    writer.writerow([timestamp, angle, pwm])
-                    print(f"{timestamp:.2f}, ángulo: {angle:.2f}, PWM: {pwm}")
-            except ValueError:
-                continue  # ignorar líneas vacías o mal formateadas
+# Inicializar buffers
+angulo_buffer = deque([0.0]*BUFFER_SIZE, maxlen=BUFFER_SIZE)
+rpm_buffer = deque([0.0]*BUFFER_SIZE, maxlen=BUFFER_SIZE)
 
-# Cerrar puerto
-ser.close()
-print(f"Datos guardados en {CSV_FILENAME}")
+# Inicializar conexión serial
+ser = serial.Serial(PORT, BAUDRATE, timeout=1)
 
-# Graficar
-import pandas as pd
+# Variables para cálculo de RPM
+ultimo_angulo = None
+ultimo_tiempo = None
 
-df = pd.read_csv(CSV_FILENAME)
-plt.plot(df['timestamp'] - df['timestamp'][0], df['angle'], label='Ángulo')
-plt.plot(df['timestamp'] - df['timestamp'][0], df['pwm'], label='PWM', alpha=0.5)
-plt.xlabel('Tiempo (s)')
-plt.ylabel('Valor')
-plt.legend()
-plt.title('Respuesta del motor al cambiar PWM')
-plt.grid(True)
+def corregir_delta_angulo(delta):
+    if delta > 180:
+        delta -= 360
+    elif delta < -180:
+        delta += 360
+    return delta
+
+def update(frame):
+    global ultimo_angulo, ultimo_tiempo
+
+    try:
+        line = ser.readline().decode().strip()
+        if line:
+            angulo = float(line)
+            angulo_buffer.append(angulo)
+
+            t_actual = time.time()
+
+            if ultimo_angulo is not None and ultimo_tiempo is not None:
+                delta_angulo = corregir_delta_angulo(angulo - ultimo_angulo)
+                delta_tiempo = t_actual - ultimo_tiempo
+
+                if delta_tiempo > 0:
+                    rpm = (delta_angulo / 360.0) / delta_tiempo * 60.0
+                    rpm_buffer.append(rpm)
+                else:
+                    rpm_buffer.append(0.0)
+            else:
+                rpm_buffer.append(0.0)
+
+            ultimo_angulo = angulo
+            ultimo_tiempo = t_actual
+
+    except Exception as e:
+        print("Error:", e)
+
+    # Graficar ángulo
+    ax1.clear()
+    ax1.plot(angulo_buffer)
+    ax1.set_ylim(0, 360)
+    ax1.set_title("Ángulo AS5600 (grados)")
+    ax1.set_ylabel("Ángulo (°)")
+    ax1.set_xlabel("Muestras")
+
+    # Graficar RPM
+    ax2.clear()
+    ax2.plot(rpm_buffer, color='orange')
+    ax2.set_ylim(0, max(100, max(rpm_buffer)))
+    ax2.set_title("Velocidad angular (RPM)")
+    ax2.set_ylabel("RPM")
+    ax2.set_xlabel("Muestras")
+
+# Crear figura y ejes
+fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 6))
+ani = animation.FuncAnimation(fig, update, interval=20)
+plt.tight_layout()
 plt.show()
+
