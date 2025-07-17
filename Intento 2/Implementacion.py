@@ -9,11 +9,11 @@ from scipy import signal
 # Parámetros del controlador
 # ========================
 # Compensador adelanto + atraso + ganancia
-Kc = 0.04
-z_c = -0.1
-p_c = -1.2971
-z_a = 0.1
-p_a = 0.01
+Kc = 9.1946
+z_c = 296.8202
+p_c = 2737.8931
+z_a = 90.1478
+p_a = 9.0148
 
 # Planta de segundo orden (usada para diseño)
 num_G = [1851051.3]
@@ -26,7 +26,7 @@ num_total = Kc * num_C
 den_total = den_C
 
 # Discretización del compensador
-Ts = 0.1  # Periodo de muestreo en segundos (ajustable)
+Ts = 0.01  # Periodo de muestreo en segundos (ajustable)
 sys_d = signal.cont2discrete((num_total, den_total), Ts, method='tustin')
 b, a = sys_d[0].flatten(), sys_d[1].flatten()
 
