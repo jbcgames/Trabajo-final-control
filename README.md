@@ -104,6 +104,6 @@ Incluye presentación de resultados, diseño de controladores y demostraciones p
 **Andres David Guerrero Rivera**
 **Jose Vicente Zabaleta Montiel**
 
-Proyecto Final de Control Moderno - 2025
+Proyecto Final de Control Continuo - 2025
 
 ---
