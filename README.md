@@ -14,7 +14,7 @@ Diseñar, simular y validar dos estrategias de control para un motor DC, integra
 ##  Tecnologías y Herramientas
 
 - Python (control, numpy, matplotlib)
-- MicroPython sobre RP2040 (Pico)
+- MicroPython sobre ESP32C3
 - Sensor AS5600 (posición)
 - Driver L298N (control PWM)
 - Jupyter Notebooks
@@ -72,18 +72,21 @@ G(s) = 2.671e5 / (s^2 + 13.07s + 130.5)
 ##  Estructura del Repositorio
 
 ```
-├── notebooks/
+├── Adelanto Atraso/
 │   ├── Diseño de compensador adelanto - atraso.ipynb
-│   └── EspaciosEstadosPosicionVelocidad.ipynb
-├── micro/
-│   ├── micro_control_velocidad.py
-│   ├── micro_control_estados_velocidad.py
-│   └── micro_control_estados_posicion.py
-├── pc/
-│   ├── pc_control_velocidad_grafica.py
-│   ├── pc_grafica_interactiva.py
-│   └── pc_grafica_angulo_pwm.py
-├── Presentacion_Control_Motor_DC.pptx
+│   └── implementacion.py
+├── Lectura Motor/
+│   ├── decodificador_rpm.py
+│   ├── leer Controlador.py
+│   └── Microcontrolador.py
+├── Realimentacion de Estados/
+│   ├── EspaciosEstadosPosicionVelocidad.ipynb
+│   ├── Implementacion_Posicion_micro.py
+│   ├── Implementacion_Posicion.py
+│   ├── Implementacion_Velocidad_micro.py
+|   └── Implementacion_Velocidad.py
+├── Control Velocidad Motor DC.ipynb
+├── Link_Video.txt
 └── README.md
 ```
 
@@ -91,7 +94,7 @@ G(s) = 2.671e5 / (s^2 + 13.07s + 130.5)
 
 ##  Video Pitch
 
-Incluye presentación de resultados, diseño de controladores y demostraciones prácticas del sistema en funcionamiento. *(link aquí cuando esté publicado)*
+Incluye presentación de resultados, diseño de controladores y demostraciones prácticas del sistema en funcionamiento. *https://youtu.be/MQJUslfhQaE*
 
 ---
 
